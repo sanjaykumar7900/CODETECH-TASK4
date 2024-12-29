@@ -1,0 +1,110 @@
+-- Create a database
+CREATE DATABASE MovieRentalSystem;
+
+-- Use database
+USE MovieRentalSystem;
+
+-- Create a table for movies
+CREATE TABLE Movies (
+    MovieID INT AUTO_INCREMENT PRIMARY KEY,
+    Title VARCHAR(255) NOT NULL,
+    Genre VARCHAR(100),
+    ReleaseYear YEAR,
+    Stock INT NOT NULL,
+    RentalPrice DECIMAL(5, 2) NOT NULL
+);
+
+
+-- Create a table for customers
+CREATE TABLE Customers (
+    CustomerID INT AUTO_INCREMENT PRIMARY KEY,
+    FirstName VARCHAR(100) NOT NULL,
+    LastName VARCHAR(100) NOT NULL,
+    Email VARCHAR(255) UNIQUE,
+    PhoneNumber VARCHAR(15),
+    Address TEXT
+);
+
+
+-- Create a table for rentals
+CREATE TABLE Rentals (
+    RentalID INT AUTO_INCREMENT PRIMARY KEY,
+    CustomerID INT NOT NULL,
+    MovieID INT NOT NULL,
+    RentalDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+    DueDate DATETIME NOT NULL,
+    ReturnedDate DATETIME,
+    TotalCost DECIMAL(6, 2),
+    FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID),
+    FOREIGN KEY (MovieID) REFERENCES Movies(MovieID)
+);
+
+-- Insert sample data into Movies
+INSERT INTO Movies (Title, Genre, ReleaseYear, Stock, RentalPrice) VALUES
+('Inception', 'Sci-Fi', 2010, 5, 2.99),
+('The Shawshank Redemption', 'Drama', 1994, 3, 1.99),
+('The Godfather', 'Crime', 1972, 4, 2.49);
+
+-- Insert sample data into Customers
+INSERT INTO Customers (FirstName, LastName, Email, PhoneNumber, Address) VALUES
+('John', 'Doe', 'john.doe@example.com', '1234567890', '123 Elm Street'),
+('Jane', 'Smith', 'jane.smith@example.com', '0987654321', '456 Oak Street');
+
+-- Manage Rentals and Returns
+
+-- Rent a movie (decrease stock and create rental record)
+START TRANSACTION;
+UPDATE Movies
+SET Stock = Stock - 1
+WHERE MovieID = 1 AND Stock > 0;
+INSERT INTO Rentals (CustomerID, MovieID, DueDate, TotalCost)
+VALUES (1, 1, DATE_ADD(NOW(), INTERVAL 7 DAY), (SELECT RentalPrice FROM Movies WHERE MovieID = 1));
+COMMIT;
+
+
+-- Return a movie (update return date and increase stock)
+START TRANSACTION;
+UPDATE Rentals
+SET ReturnedDate = NOW()
+WHERE RentalID = 1;
+UPDATE Movies
+SET Stock = Stock + 1
+WHERE MovieID = (SELECT MovieID FROM Rentals WHERE RentalID = 1);
+COMMIT;
+
+
+-- Insert sample data into Rentals
+INSERT INTO Rentals (CustomerID, MovieID, DueDate, TotalCost) VALUES
+(1, 1, DATE_ADD(NOW(), INTERVAL 7 DAY), 2.99),
+(2, 2, DATE_ADD(NOW(), INTERVAL 5 DAY), 1.99);
+
+
+-- Query to view all active rentals (not returned yet)
+SELECT 
+    r.RentalID, 
+    c.FirstName, 
+    c.LastName, 
+    m.Title, 
+    r.RentalDate, 
+    r.DueDate
+FROM Rentals r
+JOIN Customers c ON r.CustomerID = c.CustomerID
+JOIN Movies m ON r.MovieID = m.MovieID
+WHERE r.ReturnedDate IS NULL;
+
+
+INSERT INTO Rentals (CustomerID, MovieID, DueDate, TotalCost) VALUES
+(1, 3, DATE_SUB(NOW(), INTERVAL 2 DAY), 2.49),
+(2, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), 2.99);
+
+-- Query to view overdue rentals
+SELECT 
+    r.RentalID, 
+    c.FirstName, 
+    c.LastName, 
+    m.Title, 
+    r.DueDate
+FROM Rentals r
+JOIN Customers c ON r.CustomerID = c.CustomerID
+JOIN Movies m ON r.MovieID = m.MovieID
+WHERE r.DueDate < NOW() AND r.ReturnedDate IS NULL;
