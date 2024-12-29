@@ -1,8 +1,13 @@
 Name: Sanjay Kumar
-Company: CODETECH IT SOLUTIONS 
+
+Company: CODETECH IT SOLUTIONS
+
 ID:
+
 Domain: SQL 
+
 Duration: Dec2024- Feb2025
+
 Mentor: Neela Santhu
 
 
